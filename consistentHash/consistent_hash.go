@@ -50,3 +50,23 @@ func (h *ConsistentHash) Get(key string) string {
 	})
 	return h.hashMap[h.keys[n%len(h.keys)]]
 }
+
+func (h *ConsistentHash) Del(key string) {
+	for i := 0; i < h.replicas; i++ {
+		hashNumber := h.hash([]byte(strconv.Itoa(i) + key))
+		h.keys = removeElement(h.keys, int(hashNumber))
+		delete(h.hashMap, int(hashNumber))
+	}
+}
+
+func removeElement(slice []int, element int) []int {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == element {
+			//todo 使用切片的切片操作将元素从切片中移除
+			slice = append(slice[:i], slice[i+1:]...)
+			//todo 减小索引，以便继续遍历后续元素
+			i--
+		}
+	}
+	return slice
+}
