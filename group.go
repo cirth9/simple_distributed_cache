@@ -44,6 +44,7 @@ func NewGroup(groupName string, cacheBytes int64, getter Getter) *Group {
 		single:    &singleFlight.Group{},
 	}
 	groups[groupName] = group
+	groups[groupName].RegisterPeers(Pool)
 	return group
 }
 
@@ -69,6 +70,7 @@ func (g *Group) Get(key string) (byteView *ByteView, err error) {
 	}
 	if view, ok1 := g.mainCache.get(key); ok1 {
 		log.Println("cache hit")
+		log.Printf("[now cache] %#v", g.mainCache.cache)
 		return view, nil
 	}
 	return g.load(key)
@@ -78,10 +80,13 @@ func (g *Group) load(key string) (byteView *ByteView, err error) {
 	bytes, err := g.single.Do(key, func() (interface{}, error) {
 		if g.peers != nil {
 			if peer, ok := g.peers.PickPeer(key); ok {
-				if bytes, err1 := g.getFormPeer(peer, key); err1 != nil {
+				if bytes, err1 := g.getFormPeer(peer, key); err1 == nil {
+					log.Println("[get from peer]", bytes.String())
 					return bytes, err1
 				}
 			}
+		} else {
+			log.Println("[g.peers is nil]")
 		}
 		return g.getLocally(key)
 	})
@@ -89,7 +94,6 @@ func (g *Group) load(key string) (byteView *ByteView, err error) {
 	if err == nil {
 		return bytes.(*ByteView), nil
 	}
-
 	return
 }
 
@@ -121,5 +125,6 @@ func (g *Group) getFormPeer(peerGetter PeerGetter, key string) (*ByteView, error
 	if err != nil {
 		return &ByteView{}, err
 	}
+
 	return &ByteView{byteView: res.Value}, nil
 }
