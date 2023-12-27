@@ -1,4 +1,4 @@
-module simple_distributed_cache
+module github.com/thewisecirno/simple_distributed_cache
 
 go 1.20
 
