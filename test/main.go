@@ -4,9 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	cache "github.com/thewisecirno/simple_distributed_cache"
+	"github.com/thewisecirno/simple_distributed_cache/etcd"
 	"log"
-	cache "simpleCache"
-	"simpleCache/etcd"
 )
 
 var db = map[string]string{
