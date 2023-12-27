@@ -1,7 +1,7 @@
 package simpleCache
 
 import (
-	pb "simpleCache/cacheProtobuf"
+	pb "github.com/thewisecirno/simple_distributed_cache/cacheProtobuf"
 )
 
 // PeerPicker 抽象出一个key对应一个peerGetter
