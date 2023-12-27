@@ -2,6 +2,7 @@ package simpleCache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/thewisecirno/simple_distributed_cache/cacheProtobuf"
 	"github.com/thewisecirno/simple_distributed_cache/consistentHash"
@@ -22,7 +23,10 @@ import (
 	"time"
 )
 
-const defaultBasePath = "/_cache/"
+const (
+	defaultBasePath    = "/_cache/"
+	defaultWatcherTime = time.Second * 3
+)
 
 // HTTPPool implements PeerPicker for a pool of HTTP peers.
 type HTTPPool struct {
@@ -39,13 +43,37 @@ var (
 	keyName string
 )
 
-func NewHTTPPool(self string) {
+// NewHTTPPoolWithEtcd todo NewHttpPoolWithEtcd，省去还需要初始化Etcd的步骤
+func NewHTTPPoolWithEtcd(self string, base string, configEtcd *etcd.ConfigEtcd) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("[NewHTTPPoolWithEtcd] panic!")
+		}
+	}()
+
+	configEtcd.InitDiscovery(configEtcd.EndPoints, configEtcd.DialTimeout)
+
+	if self == "" {
+		panic(errors.New("http Pool self is nil \n"))
+	}
+
+	if base == "" {
+		base = defaultBasePath
+	}
+
+	if configEtcd.WatcherTime == 0 {
+		configEtcd.WatcherTime = defaultWatcherTime
+	}
+
 	Pool = &HTTPPool{
 		self:     self,
-		basePath: defaultBasePath,
+		basePath: base,
 		peers:    consistentHash.NewConsistentHash(consistentHash.DefaultReplicas, nil),
 	}
 
+	if etcd.Client == nil {
+		panic(errors.New("etcd client is nil"))
+	}
 	//todo 从etcd获取分布式结点，此时etcd中还不包含self
 	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancelFunc()
@@ -95,7 +123,7 @@ func NewHTTPPool(self string) {
 					}
 				}
 			}
-			time.Sleep(time.Second * 3)
+			time.Sleep(configEtcd.WatcherTime)
 		}
 	}()
 }
@@ -128,7 +156,7 @@ func (p *HTTPPool) Log(format string, v ...interface{}) {
 }
 
 func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//todo 浏览器访问的话，还会额外发出一个url路径为/favicon.ico，导致panic，这里后面的||判断条件主要是为了避免panic的
+	//todo 浏览器访问的话，还会额外发出一个url路径为/favicon.ico的请求，导致panic，这里后面的||判断条件主要是为了避免panic的
 	if strings.HasPrefix(r.URL.Path, "/favicon.ico") {
 		return
 	}
@@ -210,6 +238,12 @@ func (h *HttpGetter) Get(req *pb.Request, res *pb.Response) error {
 
 // Start todo 启动结点服务
 func Start(address string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("[cache Start] panic", r)
+		}
+	}()
+
 	go func() {
 		log.Println(http.ListenAndServe(address, Pool))
 	}()
