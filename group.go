@@ -2,9 +2,9 @@ package simpleCache
 
 import (
 	"errors"
+	pb "github.com/thewisecirno/simple_distributed_cache/cacheProtobuf"
+	"github.com/thewisecirno/simple_distributed_cache/singleFlight"
 	"log"
-	pb "simpleCache/cacheProtobuf"
-	"simpleCache/singleFlight"
 	"sync"
 )
 
