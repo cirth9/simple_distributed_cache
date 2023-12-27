@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	cache "github.com/thewisecirno/simple_distributed_cache"
@@ -40,10 +39,9 @@ func main() {
 	//}
 	//log.Println(db)
 
-	if etcd.Client == nil {
-		panic(errors.New("etcd client  is  nil!!"))
-	}
-	cache.NewHTTPPool(*addr)
+	cache.NewHTTPPoolWithEtcd(*addr, "", &etcd.ConfigEtcd{
+		EndPoints: []string{"47.115.217.189:2379"},
+	})
 	cache.NewGroup("scores", 2<<10, cache.GetterHandler(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
