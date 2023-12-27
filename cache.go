@@ -1,7 +1,7 @@
 package simpleCache
 
 import (
-	"simpleCache/lru"
+	"github.com/thewisecirno/simple_distributed_cache/lru"
 	"sync"
 )
 
